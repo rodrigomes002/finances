@@ -443,7 +443,7 @@ class _ExpenseCategoryChart extends StatelessWidget {
   final VoidCallback onVisibilityChanged;
 
   static const _categoryColors = [
-    Color(0xFF147D6F),
+    Color(0xFF287FB8),
     Color(0xFF5B8DEF),
     Color(0xFFFFA24C),
     Color(0xFF9B6DD7),

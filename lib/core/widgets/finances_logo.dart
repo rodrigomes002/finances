@@ -14,7 +14,7 @@ class FinancesLogo extends StatelessWidget {
         dimension: size,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: const Color(0xFF147D6F),
+            color: Theme.of(context).colorScheme.primary,
             borderRadius: BorderRadius.circular(size * 0.28),
           ),
           child: CustomPaint(painter: _FinancesLogoPainter()),

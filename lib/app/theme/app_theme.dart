@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 abstract final class AppTheme {
-  static const _primary = Color(0xFF147D6F);
-  static const _ink = Color(0xFF17332F);
-  static const _muted = Color(0xFF687873);
-  static const _line = Color(0xFFE7EEEB);
+  static const _primary = Color(0xFF287FB8);
+  static const _ink = Color(0xFF1D3545);
+  static const _muted = Color(0xFF667985);
+  static const _line = Color(0xFFE4EDF3);
 
   static final light = ThemeData(
     useMaterial3: true,
