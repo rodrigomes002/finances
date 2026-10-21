@@ -10,10 +10,18 @@ lib/
   core/
     database/           Acesso e versionamento do SQLite
   features/
+    transactions/
+      data/             Persistência dos lançamentos
+      domain/           Modelo de movimentação financeira
     dashboard/
       presentation/
         view/           Telas
         viewmodel/      Estado e lógica de apresentação
+    upload/
+      data/             Extração e leitura de extratos Itaú em PDF
+      presentation/
+        view/           Seleção e importação do extrato
+        viewmodel/      Estado da importação
 ```
 
 ## Executar
@@ -24,4 +32,7 @@ flutter run
 ```
 
 O banco SQLite é criado sob demanda em `finances.db`. O painel inicial apresenta
-valores vazios; a integração de lançamentos será adicionada nas próximas etapas.
+o saldo líquido das movimentações, entradas e despesas do mês e os lançamentos
+recentes. Na aba **Upload**, selecione um extrato Itaú em PDF: o arquivo é lido
+localmente, e entradas e despesas são salvas no SQLite. Linhas “SALDO DO DIA”
+não são importadas; reimportações ignoram lançamentos já salvos.

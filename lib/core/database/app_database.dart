@@ -15,7 +15,7 @@ class AppDatabase {
 
     return openDatabase(
       join(databasesPath, 'finances.db'),
-      version: 1,
+      version: 2,
       onCreate: (database, version) async {
         await database.execute('''
           CREATE TABLE transactions (
@@ -24,9 +24,21 @@ class AppDatabase {
             amount REAL NOT NULL CHECK (amount > 0),
             type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
             category TEXT NOT NULL,
-            occurred_at TEXT NOT NULL
+            occurred_at TEXT NOT NULL,
+            import_key TEXT UNIQUE
           )
         ''');
+      },
+      onUpgrade: (database, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await database.execute(
+            'ALTER TABLE transactions ADD COLUMN import_key TEXT',
+          );
+          await database.execute(
+            'CREATE UNIQUE INDEX transactions_import_key '
+            'ON transactions (import_key)',
+          );
+        }
       },
     );
   }
