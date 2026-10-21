@@ -142,7 +142,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Editar valor de Conta de luz'));
+    await tester.tap(find.byTooltip('Configurações de Conta de luz'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Editar'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField), '180,50');
     await tester.tap(find.text('Salvar'));
@@ -174,7 +176,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Excluir gasto Conta de luz'));
+    await tester.tap(find.byTooltip('Configurações de Conta de luz'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Excluir'));
     await tester.pumpAndSettle();
     expect(find.text('Excluir gasto?'), findsOneWidget);
     expect(
@@ -213,7 +217,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Excluir entrada Renda extra'));
+    await tester.tap(find.byTooltip('Configurações de Renda extra'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Excluir'));
     await tester.pumpAndSettle();
     expect(find.text('Excluir entrada?'), findsOneWidget);
     expect(
@@ -261,7 +267,9 @@ void main() {
     expect(find.text('Entrada fixa'), findsOneWidget);
     expect(find.text('+R\$ 3200,00'), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Editar valor de Salário mensal'));
+    await tester.tap(find.byTooltip('Configurações de Salário mensal'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Editar'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField), '3500,00');
     await tester.tap(find.text('Salvar'));

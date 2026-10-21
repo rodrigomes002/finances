@@ -603,18 +603,41 @@ class _TransactionTile extends StatelessWidget {
                 '${isIncome ? '+' : '-'}$formattedAmount',
                 style: TextStyle(color: color, fontWeight: FontWeight.w700),
               ),
-              IconButton(
-                tooltip: 'Editar valor de ${transaction.description}',
-                onPressed: onEdit,
-                icon: const Icon(Icons.edit_outlined),
+              PopupMenuButton<_TransactionAction>(
+                tooltip: 'Configurações de ${transaction.description}',
+                onSelected: (action) {
+                  switch (action) {
+                    case _TransactionAction.edit:
+                      onEdit();
+                    case _TransactionAction.delete:
+                      onDelete?.call();
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: _TransactionAction.edit,
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit_outlined),
+                        SizedBox(width: 12),
+                        Text('Editar'),
+                      ],
+                    ),
+                  ),
+                  if (onDelete != null)
+                    const PopupMenuItem(
+                      value: _TransactionAction.delete,
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete_outline),
+                          SizedBox(width: 12),
+                          Text('Excluir'),
+                        ],
+                      ),
+                    ),
+                ],
+                icon: const Icon(Icons.settings_outlined),
               ),
-              if (onDelete case final onDelete?)
-                IconButton(
-                  tooltip:
-                      'Excluir ${isIncome ? 'entrada' : 'gasto'} ${transaction.description}',
-                  onPressed: onDelete,
-                  icon: const Icon(Icons.delete_outline),
-                ),
             ],
           ),
         ),
@@ -623,3 +646,5 @@ class _TransactionTile extends StatelessWidget {
     );
   }
 }
+
+enum _TransactionAction { edit, delete }
