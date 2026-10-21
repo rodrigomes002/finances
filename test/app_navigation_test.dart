@@ -1,7 +1,7 @@
 import 'package:finances/app/app.dart';
+import 'package:finances/core/widgets/finances_logo.dart';
 import 'package:finances/features/transactions/data/finance_repository.dart';
 import 'package:finances/features/transactions/domain/finance_transaction.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -23,11 +23,13 @@ void main() {
     expect(find.byType(NavigationRail), findsNothing);
     expect(find.byType(NavigationBar), findsNothing);
     expect(find.byTooltip('Abrir menu'), findsOneWidget);
+    expect(find.byType(FinancesLogo), findsOneWidget);
     expect(find.text('Visão geral'), findsOneWidget);
     expect(find.text('Envie seu extrato bancário em PDF'), findsNothing);
 
     await tester.tap(find.byTooltip('Abrir menu'));
     await tester.pumpAndSettle();
+    expect(find.byType(FinancesLogo), findsAtLeastNWidgets(2));
     await tester.tap(find.text('Upload'));
     await tester.pumpAndSettle();
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import '../core/widgets/finances_logo.dart';
 import '../features/transactions/data/finance_repository.dart';
 import '../features/dashboard/presentation/view/dashboard_page.dart';
 import '../features/upload/presentation/view/upload_page.dart';
@@ -29,6 +30,7 @@ class _FinancesAppState extends State<FinancesApp> {
   @override
   Widget build(BuildContext context) {
     const locale = Locale('pt', 'BR');
+    final colors = AppTheme.light.colorScheme;
 
     return MaterialApp(
       title: 'Finanças',
@@ -43,22 +45,63 @@ class _FinancesAppState extends State<FinancesApp> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const DrawerHeader(
+                DrawerHeader(
+                  decoration: BoxDecoration(
+                    color: colors.primary,
+                    borderRadius: const BorderRadius.only(
+                      bottomRight: Radius.circular(24),
+                    ),
+                  ),
                   child: Align(
                     alignment: Alignment.bottomLeft,
-                    child: Text('Finanças'),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        const FinancesLogo(size: 48),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Finanças',
+                          style: AppTheme.light.textTheme.titleLarge?.copyWith(
+                            color: Colors.white,
+                          ),
+                        ),
+                        const Text(
+                          'Seu dinheiro, sob controle',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 ListTile(
-                  leading: const Icon(Icons.dashboard_outlined),
+                  leading: Icon(
+                    _selectedIndex == 0
+                        ? Icons.space_dashboard
+                        : Icons.space_dashboard_outlined,
+                  ),
                   title: const Text('Dashboard'),
                   selected: _selectedIndex == 0,
+                  selectedTileColor: colors.primaryContainer,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20),
                   onTap: () => _selectPage(0),
                 ),
                 ListTile(
-                  leading: const Icon(Icons.upload_file_outlined),
+                  leading: Icon(
+                    _selectedIndex == 1
+                        ? Icons.file_upload
+                        : Icons.file_upload_outlined,
+                  ),
                   title: const Text('Upload'),
                   selected: _selectedIndex == 1,
+                  selectedTileColor: colors.primaryContainer,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20),
                   onTap: () => _selectPage(1),
                 ),
               ],
@@ -68,10 +111,7 @@ class _FinancesAppState extends State<FinancesApp> {
         body: IndexedStack(
           index: _selectedIndex,
           children: [
-            DashboardPage(
-              repository: _repository,
-              onMenuPressed: _openDrawer,
-            ),
+            DashboardPage(repository: _repository, onMenuPressed: _openDrawer),
             UploadPage(repository: _repository, onMenuPressed: _openDrawer),
           ],
         ),

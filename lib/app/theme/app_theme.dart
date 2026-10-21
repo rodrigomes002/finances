@@ -1,25 +1,68 @@
 import 'package:flutter/material.dart';
 
 abstract final class AppTheme {
+  static const _primary = Color(0xFF147D6F);
+  static const _ink = Color(0xFF17332F);
+  static const _muted = Color(0xFF687873);
+  static const _line = Color(0xFFE7EEEB);
+
   static final light = ThemeData(
     useMaterial3: true,
     colorScheme: ColorScheme.fromSeed(
-      seedColor: const Color(0xFF2E7D70),
+      seedColor: _primary,
       brightness: Brightness.light,
       surface: Colors.white,
     ),
     scaffoldBackgroundColor: Colors.white,
     appBarTheme: const AppBarTheme(
       backgroundColor: Colors.white,
-      foregroundColor: Color(0xFF1C1B1F),
+      foregroundColor: _ink,
       surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      titleTextStyle: TextStyle(
+        color: _ink,
+        fontSize: 19,
+        fontWeight: FontWeight.w700,
+      ),
     ),
     cardTheme: CardThemeData(
       color: Colors.white,
-      elevation: 1,
+      elevation: 0,
       margin: EdgeInsets.zero,
       surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: _line),
+      ),
     ),
+    textTheme: const TextTheme(
+      headlineSmall: TextStyle(
+        color: _ink,
+        fontSize: 26,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.5,
+      ),
+      titleLarge: TextStyle(
+        color: _ink,
+        fontSize: 18,
+        fontWeight: FontWeight.w700,
+      ),
+      titleMedium: TextStyle(
+        color: _ink,
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+      ),
+      bodyMedium: TextStyle(color: _muted, fontSize: 14, height: 1.5),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        backgroundColor: _primary,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        textStyle: const TextStyle(fontWeight: FontWeight.w700),
+      ),
+    ),
+    iconTheme: const IconThemeData(color: _primary),
   );
 }
