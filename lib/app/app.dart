@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import '../core/widgets/finances_logo.dart';
 import '../features/transactions/data/finance_repository.dart';
 import '../features/dashboard/presentation/view/dashboard_page.dart';
+import '../features/manual_entry/presentation/view/manual_entry_page.dart';
 import '../features/upload/presentation/view/upload_page.dart';
 import 'theme/app_theme.dart';
 
@@ -104,6 +105,21 @@ class _FinancesAppState extends State<FinancesApp> {
                   contentPadding: const EdgeInsets.symmetric(horizontal: 20),
                   onTap: () => _selectPage(1),
                 ),
+                ListTile(
+                  leading: Icon(
+                    _selectedIndex == 2
+                        ? Icons.add_card
+                        : Icons.add_card_outlined,
+                  ),
+                  title: const Text('Lançamento manual'),
+                  selected: _selectedIndex == 2,
+                  selectedTileColor: colors.primaryContainer,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                  onTap: () => _selectPage(2),
+                ),
               ],
             ),
           ),
@@ -113,6 +129,10 @@ class _FinancesAppState extends State<FinancesApp> {
           children: [
             DashboardPage(repository: _repository, onMenuPressed: _openDrawer),
             UploadPage(repository: _repository, onMenuPressed: _openDrawer),
+            ManualEntryPage(
+              repository: _repository,
+              onMenuPressed: _openDrawer,
+            ),
           ],
         ),
       ),

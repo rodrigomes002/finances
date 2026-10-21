@@ -11,7 +11,7 @@ lib/
     database/           Acesso e versionamento do SQLite
   features/
     transactions/
-      data/             Persistência dos lançamentos
+      data/             Persistência dos lançamentos e despesas fixas
       domain/           Modelo de movimentação financeira
     dashboard/
       presentation/
@@ -36,3 +36,8 @@ o saldo líquido das movimentações, entradas e despesas do mês e os lançamen
 recentes. Na aba **Upload**, selecione um extrato Itaú em PDF: o arquivo é lido
 localmente, e entradas e despesas são salvas no SQLite. Linhas “SALDO DO DIA”
 não são importadas; reimportações ignoram lançamentos já salvos.
+
+Em **Lançamento manual**, marque **Despesa fixa** para repetir a despesa nos
+meses seguintes, a partir do mês informado. No painel, navegue entre os meses
+para consultar os gastos e use o ícone de edição para ajustar o valor. Alterar
+uma despesa fixa afeta somente o mês selecionado.

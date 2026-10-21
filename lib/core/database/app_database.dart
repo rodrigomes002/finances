@@ -15,7 +15,7 @@ class AppDatabase {
 
     return openDatabase(
       join(databasesPath, 'finances.db'),
-      version: 2,
+      version: 3,
       onCreate: (database, version) async {
         await database.execute('''
           CREATE TABLE transactions (
@@ -25,9 +25,11 @@ class AppDatabase {
             type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
             category TEXT NOT NULL,
             occurred_at TEXT NOT NULL,
-            import_key TEXT UNIQUE
+            import_key TEXT UNIQUE,
+            is_fixed INTEGER NOT NULL DEFAULT 0
           )
         ''');
+        await _createFixedExpenseTables(database);
       },
       onUpgrade: (database, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -39,7 +41,36 @@ class AppDatabase {
             'ON transactions (import_key)',
           );
         }
+        if (oldVersion < 3) {
+          await database.execute(
+            'ALTER TABLE transactions ADD COLUMN '
+            'is_fixed INTEGER NOT NULL DEFAULT 0',
+          );
+          await _createFixedExpenseTables(database);
+        }
       },
     );
+  }
+
+  Future<void> _createFixedExpenseTables(DatabaseExecutor database) async {
+    await database.execute('''
+      CREATE TABLE fixed_expenses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        description TEXT NOT NULL,
+        amount REAL NOT NULL CHECK (amount > 0),
+        category TEXT NOT NULL,
+        started_at TEXT NOT NULL
+      )
+    ''');
+    await database.execute('''
+      CREATE TABLE fixed_expense_monthly_values (
+        fixed_expense_id INTEGER NOT NULL,
+        month TEXT NOT NULL,
+        amount REAL NOT NULL CHECK (amount > 0),
+        PRIMARY KEY (fixed_expense_id, month),
+        FOREIGN KEY (fixed_expense_id) REFERENCES fixed_expenses (id)
+          ON DELETE CASCADE
+      )
+    ''');
   }
 }

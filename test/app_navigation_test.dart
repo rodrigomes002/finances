@@ -30,6 +30,13 @@ void main() {
     await tester.tap(find.byTooltip('Abrir menu'));
     await tester.pumpAndSettle();
     expect(find.byType(FinancesLogo), findsAtLeastNWidgets(2));
+    await tester.tap(find.text('Lançamento manual'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Registre sua renda ou seus gastos'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Abrir menu'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Upload'));
     await tester.pumpAndSettle();
 
@@ -51,6 +58,16 @@ class _FakeFinanceRepository extends ChangeNotifier
   @override
   Future<int> importTransactions(List<FinanceTransaction> transactions) async =>
       transactions.length;
+
+  @override
+  Future<void> addTransaction(FinanceTransaction transaction) async {}
+
+  @override
+  Future<void> updateExpenseAmount({
+    required FinanceTransaction transaction,
+    required double amount,
+    required DateTime month,
+  }) async {}
 
   @override
   Future<FinanceOverview> loadOverview({

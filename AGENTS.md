@@ -5,11 +5,11 @@ Ajudar usuários com a gestão financeira pessoal, dar vizibilidade dos gastos p
 
 ## Stack tecnológica
 - Linguagem: Dart
-- Frameworks: Flutter com Shadcn
+- Frameworks: Flutter com Material UI
 - Banco de dados: SQLite
 
 ## Arquitetura
-- Seguir a arquitetura MVVM.
+- Seguir a arquitetura Hexagonal, DDD e MVVM.
 - Separar responsabilidades por camada.
 - Respeitar os princípios SOLID.
 

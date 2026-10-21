@@ -121,21 +121,63 @@ void main() {
     expect(find.text('Entrada do mês anterior'), findsNothing);
     expect(find.text('Total: R\$ 100,00'), findsOneWidget);
   });
+
+  testWidgets('edits the selected month expense amount', (tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final expense = _transaction(
+      description: 'Conta de luz',
+      amount: 120,
+      date: DateTime.now(),
+      importKey: 'electricity',
+    );
+    final repository = _FakeFinanceRepository(transactions: [expense]);
+
+    await tester.pumpWidget(
+      MaterialApp(home: DashboardPage(repository: repository)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Editar valor de Conta de luz'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField), '180,50');
+    await tester.tap(find.text('Salvar'));
+    await tester.pumpAndSettle();
+
+    expect(repository.updatedAmount, 180.5);
+    expect(repository.updatedMonth?.month, DateTime.now().month);
+    expect(find.text('Valor do gasto atualizado.'), findsOneWidget);
+  });
 }
 
 class _FakeFinanceRepository extends ChangeNotifier
     implements FinanceRepository {
-  _FakeFinanceRepository({
-    this.overview,
-    this.transactions = const [],
-  });
+  _FakeFinanceRepository({this.overview, this.transactions = const []});
 
   final FinanceOverview? overview;
   final List<FinanceTransaction> transactions;
+  double? updatedAmount;
+  DateTime? updatedMonth;
 
   @override
   Future<int> importTransactions(List<FinanceTransaction> transactions) async =>
       transactions.length;
+
+  @override
+  Future<void> addTransaction(FinanceTransaction transaction) async {}
+
+  @override
+  Future<void> updateExpenseAmount({
+    required FinanceTransaction transaction,
+    required double amount,
+    required DateTime month,
+  }) async {
+    updatedAmount = amount;
+    updatedMonth = month;
+  }
 
   @override
   Future<FinanceOverview> loadOverview({DateTime? now, DateTime? month}) async {

@@ -40,9 +40,7 @@ class DashboardViewModel extends ChangeNotifier {
     try {
       final overview = await _repository.loadOverview(month: selectedMonth);
       final transactions = await _repository.loadRecentTransactions();
-      final expenses = await _repository.loadExpensesForMonth(
-        selectedMonth,
-      );
+      final expenses = await _repository.loadExpensesForMonth(selectedMonth);
       _recentTransactions = transactions;
       if (monthRequestId == _monthRequestId) {
         _balance = overview.balance;
@@ -85,6 +83,33 @@ class DashboardViewModel extends ChangeNotifier {
         notifyListeners();
       }
     }
+  }
+
+  Future<bool> updateExpenseAmount(
+    FinanceTransaction transaction,
+    double amount,
+  ) async {
+    try {
+      await _repository.updateExpenseAmount(
+        transaction: transaction,
+        amount: amount,
+        month: _selectedExpenseMonth,
+      );
+      _errorMessage = null;
+      return true;
+    } on ArgumentError {
+      return _reportExpenseUpdateFailure();
+    } on StateError {
+      return _reportExpenseUpdateFailure();
+    } on Exception {
+      return _reportExpenseUpdateFailure();
+    }
+  }
+
+  bool _reportExpenseUpdateFailure() {
+    _errorMessage = 'Não foi possível atualizar o valor do gasto.';
+    notifyListeners();
+    return false;
   }
 
   void _onTransactionsChanged() {

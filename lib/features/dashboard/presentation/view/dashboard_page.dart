@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../../core/widgets/finances_logo.dart';
 import '../../../transactions/data/finance_repository.dart';
@@ -182,6 +183,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             showDivider:
                                 entry.$1 <
                                 _viewModel.expensesForSelectedMonth.length - 1,
+                            onEdit: () => _editExpenseAmount(entry.$2),
                           ),
                         ),
                       ],
@@ -217,6 +219,76 @@ class _DashboardPageState extends State<DashboardPage> {
       'dezembro',
     ];
     return '${months[date.month - 1]} de ${date.year}';
+  }
+
+  Future<void> _editExpenseAmount(FinanceTransaction transaction) async {
+    final formKey = GlobalKey<FormState>();
+    var amountInput = transaction.amount
+        .toStringAsFixed(2)
+        .replaceAll('.', ',');
+    final amount = await showDialog<double>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Editar valor'),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            initialValue: amountInput,
+            autofocus: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+            ],
+            decoration: const InputDecoration(
+              labelText: 'Valor',
+              prefixText: 'R\$ ',
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (value) => amountInput = value,
+            validator: (value) {
+              final parsed = _parseAmount(value ?? '');
+              if (parsed == null || !parsed.isFinite || parsed <= 0) {
+                return 'Informe um valor maior que zero.';
+              }
+              return null;
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (!formKey.currentState!.validate()) return;
+              Navigator.pop(context, _parseAmount(amountInput));
+            },
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+    if (amount == null || !mounted) return;
+
+    final saved = await _viewModel.updateExpenseAmount(transaction, amount);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          saved
+              ? 'Valor do gasto atualizado.'
+              : 'Não foi possível atualizar o valor do gasto.',
+        ),
+      ),
+    );
+  }
+
+  double? _parseAmount(String value) {
+    final normalized = value.trim().contains(',')
+        ? value.trim().replaceAll('.', '').replaceAll(',', '.')
+        : value.trim();
+    return double.tryParse(normalized);
   }
 }
 
@@ -387,11 +459,13 @@ class _TransactionTile extends StatelessWidget {
     required this.transaction,
     required this.formattedAmount,
     required this.showDivider,
+    required this.onEdit,
   });
 
   final FinanceTransaction transaction;
   final String formattedAmount;
   final bool showDivider;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -432,7 +506,10 @@ class _TransactionTile extends StatelessWidget {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 3),
-                    Text(date, style: Theme.of(context).textTheme.bodySmall),
+                    Text(
+                      transaction.isFixed ? 'Despesa fixa' : date,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   ],
                 ),
               ),
@@ -443,6 +520,11 @@ class _TransactionTile extends StatelessWidget {
                   color: color,
                   fontWeight: FontWeight.w700,
                 ),
+              ),
+              IconButton(
+                tooltip: 'Editar valor de ${transaction.description}',
+                onPressed: onEdit,
+                icon: const Icon(Icons.edit_outlined),
               ),
             ],
           ),
