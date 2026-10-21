@@ -31,26 +31,6 @@ class DashboardViewModel extends ChangeNotifier {
       _expensesForSelectedMonth;
   List<FinanceTransaction> get incomesForSelectedMonth =>
       _incomesForSelectedMonth;
-  Map<String, double> get expenseTotalsByCategory {
-    final totals = <String, double>{};
-    for (final transaction in _expensesForSelectedMonth) {
-      totals.update(
-        transaction.category,
-        (total) => total + transaction.amount,
-        ifAbsent: () => transaction.amount,
-      );
-    }
-    final entries = totals.entries.toList()
-      ..sort((first, second) => second.value.compareTo(first.value));
-    return Map.unmodifiable({
-      for (final entry in entries) entry.key: entry.value,
-    });
-  }
-
-  double get selectedMonthExpenses => _expensesForSelectedMonth.fold(
-    0,
-    (total, transaction) => total + transaction.amount,
-  );
   String? get errorMessage => _errorMessage;
 
   Future<void> load() async {

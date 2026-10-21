@@ -26,11 +26,7 @@ void main() {
     expect(find.text('R\$ 0,00'), findsNWidgets(3));
     expect(find.text('Gastos e entradas recentes'), findsNothing);
     expect(find.text('Gastos do mês'), findsOneWidget);
-    expect(find.text('Gastos por categoria'), findsOneWidget);
-    expect(
-      find.text('Adicione gastos para visualizar as categorias.'),
-      findsOneWidget,
-    );
+    expect(find.text('Gastos por categoria'), findsNothing);
   });
 
   testWidgets('shows imported income and expense movements', (tester) async {
@@ -77,13 +73,11 @@ void main() {
     expect(find.text('+R\$ 1000,00'), findsOneWidget);
     expect(find.text('Mercado'), findsOneWidget);
     expect(find.text('-R\$ 750,00'), findsOneWidget);
-    expect(find.text('Despesa'), findsAtLeastNWidgets(1));
-    expect(find.text('100,0%'), findsOneWidget);
+    expect(find.text('Despesa'), findsNothing);
+    expect(find.text('100,0%'), findsNothing);
   });
 
-  testWidgets('groups monthly expenses by category in the pie chart', (
-    tester,
-  ) async {
+  testWidgets('shows expenses without a category breakdown', (tester) async {
     tester.view.physicalSize = const Size(800, 1400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -123,51 +117,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Gastos por categoria'), findsOneWidget);
-    expect(find.text('Alimentação'), findsOneWidget);
-    expect(find.text('Transporte'), findsOneWidget);
-    expect(find.text('R\$ 150,00'), findsOneWidget);
-    expect(find.text('R\$ 50,00'), findsOneWidget);
-    expect(find.text('75,0%'), findsOneWidget);
-    expect(find.text('25,0%'), findsOneWidget);
-  });
-
-  testWidgets('hides and shows the expense category chart on demand', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(800, 1400);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    final repository = _FakeFinanceRepository(
-      transactions: [
-        FinanceTransaction(
-          description: 'Almoço',
-          amount: 100,
-          type: FinanceTransactionType.expense,
-          occurredAt: DateTime.now(),
-          importKey: 'lunch',
-          category: 'Alimentação',
-        ),
-      ],
-    );
-
-    await tester.pumpWidget(
-      MaterialApp(home: DashboardPage(repository: repository)),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Alimentação'), findsOneWidget);
-    await tester.tap(find.byTooltip('Ocultar gráfico'));
-    await tester.pumpAndSettle();
-
+    expect(find.text('Gastos por categoria'), findsNothing);
     expect(find.text('Alimentação'), findsNothing);
-    expect(find.text('Gastos por categoria'), findsOneWidget);
-    await tester.tap(find.byTooltip('Exibir gráfico'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Alimentação'), findsOneWidget);
+    expect(find.text('Transporte'), findsNothing);
+    expect(find.text('Almoço'), findsOneWidget);
+    expect(find.text('Jantar'), findsOneWidget);
+    expect(find.text('Ônibus'), findsOneWidget);
   });
 
   testWidgets('filters expenses by selected month', (tester) async {

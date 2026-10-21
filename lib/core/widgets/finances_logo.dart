@@ -53,7 +53,7 @@ class _FinancesLogoPainter extends CustomPainter {
     );
 
     final trendPaint = Paint()
-      ..color = const Color(0xFFF7C873)
+      ..color = const Color(0xFF8DC8F2)
       ..strokeWidth = 6
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
@@ -70,7 +70,7 @@ class _FinancesLogoPainter extends CustomPainter {
       ..lineTo(87, 13)
       ..lineTo(83, 33)
       ..close();
-    canvas.drawPath(arrowHead, Paint()..color = const Color(0xFFF7C873));
+    canvas.drawPath(arrowHead, Paint()..color = const Color(0xFF8DC8F2));
   }
 
   @override
