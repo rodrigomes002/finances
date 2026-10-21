@@ -201,12 +201,16 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                   const Divider(height: 1),
                   ...transactions.indexed.map(
-                    (entry) => _TransactionTile(
-                      transaction: entry.$2,
-                      formattedAmount: _formatCurrency(entry.$2.amount),
-                      showDivider: entry.$1 < transactions.length - 1,
-                      onEdit: () => _editTransactionAmount(entry.$2),
-                    ),
+                    (entry) {
+                      final transaction = entry.$2;
+                      return _TransactionTile(
+                        transaction: transaction,
+                        formattedAmount: _formatCurrency(transaction.amount),
+                        showDivider: entry.$1 < transactions.length - 1,
+                        onEdit: () => _editTransactionAmount(transaction),
+                        onDelete: () => _deleteTransaction(transaction),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -297,6 +301,55 @@ class _DashboardPageState extends State<DashboardPage> {
           saved
               ? 'Valor ${_transactionUpdatePhrase(transaction)} atualizado.'
               : 'Não foi possível atualizar o valor ${_transactionUpdatePhrase(transaction)}.',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deleteTransaction(FinanceTransaction transaction) async {
+    final isIncome = transaction.type == FinanceTransactionType.income;
+    final transactionName = isIncome ? 'entrada' : 'gasto';
+    final fixedTransactionName = isIncome ? 'entrada fixa' : 'despesa fixa';
+    final transactionDescription = isIncome
+        ? 'A entrada "${transaction.description}" será removida permanentemente.'
+        : 'O gasto "${transaction.description}" será removido permanentemente.';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          transaction.isFixed
+              ? 'Excluir $fixedTransactionName?'
+              : 'Excluir $transactionName?',
+        ),
+        content: Text(
+          transaction.isFixed
+              ? 'A $fixedTransactionName "${transaction.description}" será removida permanentemente de todos os meses.'
+              : transactionDescription,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final deleted = await _viewModel.deleteTransaction(transaction);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          deleted
+              ? isIncome
+                    ? 'Entrada excluída.'
+                    : 'Gasto excluído.'
+              : 'Não foi possível excluir o lançamento.',
         ),
       ),
     );
@@ -483,12 +536,14 @@ class _TransactionTile extends StatelessWidget {
     required this.formattedAmount,
     required this.showDivider,
     required this.onEdit,
+    required this.onDelete,
   });
 
   final FinanceTransaction transaction;
   final String formattedAmount;
   final bool showDivider;
   final VoidCallback onEdit;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -553,6 +608,13 @@ class _TransactionTile extends StatelessWidget {
                 onPressed: onEdit,
                 icon: const Icon(Icons.edit_outlined),
               ),
+              if (onDelete case final onDelete?)
+                IconButton(
+                  tooltip:
+                      'Excluir ${isIncome ? 'entrada' : 'gasto'} ${transaction.description}',
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline),
+                ),
             ],
           ),
         ),

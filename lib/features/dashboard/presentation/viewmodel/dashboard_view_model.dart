@@ -113,8 +113,28 @@ class DashboardViewModel extends ChangeNotifier {
     }
   }
 
+  Future<bool> deleteTransaction(FinanceTransaction transaction) async {
+    try {
+      await _repository.deleteTransaction(transaction);
+      _errorMessage = null;
+      return true;
+    } on ArgumentError {
+      return _reportExpenseDeletionFailure();
+    } on StateError {
+      return _reportExpenseDeletionFailure();
+    } on Exception {
+      return _reportExpenseDeletionFailure();
+    }
+  }
+
   bool _reportExpenseUpdateFailure() {
     _errorMessage = 'Não foi possível atualizar o valor do lançamento.';
+    notifyListeners();
+    return false;
+  }
+
+  bool _reportExpenseDeletionFailure() {
+    _errorMessage = 'Não foi possível excluir o lançamento.';
     notifyListeners();
     return false;
   }

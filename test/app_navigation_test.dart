@@ -70,6 +70,9 @@ class _FakeFinanceRepository extends ChangeNotifier
   }) async {}
 
   @override
+  Future<void> deleteTransaction(FinanceTransaction transaction) async {}
+
+  @override
   Future<FinanceOverview> loadOverview({
     DateTime? now,
     DateTime? month,

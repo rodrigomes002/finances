@@ -103,6 +103,9 @@ class _FakeFinanceRepository extends ChangeNotifier
   }) async {}
 
   @override
+  Future<void> deleteTransaction(FinanceTransaction transaction) async {}
+
+  @override
   Future<int> importTransactions(List<FinanceTransaction> transactions) async =>
       transactions.length;
 

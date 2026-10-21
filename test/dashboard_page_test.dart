@@ -153,6 +153,85 @@ void main() {
     expect(find.text('Valor do gasto atualizado.'), findsOneWidget);
   });
 
+  testWidgets('confirms and deletes an expense from the selected month', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final expense = _transaction(
+      description: 'Conta de luz',
+      amount: 120,
+      date: DateTime.now(),
+      importKey: 'electricity',
+    );
+    final repository = _FakeFinanceRepository(transactions: [expense]);
+
+    await tester.pumpWidget(
+      MaterialApp(home: DashboardPage(repository: repository)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Excluir gasto Conta de luz'));
+    await tester.pumpAndSettle();
+    expect(find.text('Excluir gasto?'), findsOneWidget);
+    expect(
+      find.text('O gasto "Conta de luz" será removido permanentemente.'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Excluir'));
+    await tester.pumpAndSettle();
+
+    expect(repository.deletedTransaction, same(expense));
+    expect(find.text('Conta de luz'), findsNothing);
+    expect(find.text('Nenhum gasto encontrado neste mês.'), findsOneWidget);
+    expect(find.text('Gasto excluído.'), findsOneWidget);
+  });
+
+  testWidgets('confirms and deletes an income from the selected month', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final income = _transaction(
+      description: 'Renda extra',
+      amount: 450,
+      date: DateTime.now(),
+      importKey: 'extra-income',
+      type: FinanceTransactionType.income,
+    );
+    final repository = _FakeFinanceRepository(transactions: [income]);
+
+    await tester.pumpWidget(
+      MaterialApp(home: DashboardPage(repository: repository)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Excluir entrada Renda extra'));
+    await tester.pumpAndSettle();
+    expect(find.text('Excluir entrada?'), findsOneWidget);
+    expect(
+      find.text(
+        'A entrada "Renda extra" será removida permanentemente.',
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Excluir'));
+    await tester.pumpAndSettle();
+
+    expect(repository.deletedTransaction, same(income));
+    expect(find.text('Renda extra'), findsNothing);
+    expect(find.text('Nenhuma entrada encontrada neste mês.'), findsOneWidget);
+    expect(find.text('Entrada excluída.'), findsOneWidget);
+  });
+
   testWidgets('shows and edits a fixed income for the selected month', (
     tester,
   ) async {
@@ -198,9 +277,9 @@ class _FakeFinanceRepository extends ChangeNotifier
     implements FinanceRepository {
   _FakeFinanceRepository({
     this.overview,
-    this.transactions = const [],
+    List<FinanceTransaction> transactions = const [],
     this.incomes = const [],
-  });
+  }) : transactions = List.of(transactions);
 
   final FinanceOverview? overview;
   final List<FinanceTransaction> transactions;
@@ -208,6 +287,7 @@ class _FakeFinanceRepository extends ChangeNotifier
   FinanceTransaction? updatedTransaction;
   double? updatedAmount;
   DateTime? updatedMonth;
+  FinanceTransaction? deletedTransaction;
 
   @override
   Future<int> importTransactions(List<FinanceTransaction> transactions) async =>
@@ -225,6 +305,13 @@ class _FakeFinanceRepository extends ChangeNotifier
     updatedTransaction = transaction;
     updatedAmount = amount;
     updatedMonth = month;
+  }
+
+  @override
+  Future<void> deleteTransaction(FinanceTransaction transaction) async {
+    deletedTransaction = transaction;
+    transactions.remove(transaction);
+    notifyListeners();
   }
 
   @override

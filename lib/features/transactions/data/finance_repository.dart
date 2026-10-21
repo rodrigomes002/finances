@@ -18,6 +18,7 @@ abstract interface class FinanceRepository implements Listenable {
     required double amount,
     required DateTime month,
   });
+  Future<void> deleteTransaction(FinanceTransaction transaction);
   Future<FinanceOverview> loadOverview({DateTime? now, DateTime? month});
   Future<List<FinanceTransaction>> loadRecentTransactions({int limit = 10});
   Future<List<FinanceTransaction>> loadExpensesForMonth(DateTime month);
@@ -141,6 +142,40 @@ class SqliteFinanceRepository extends ChangeNotifier
       if (updatedRows != 1) {
         throw StateError('O lançamento não foi encontrado.');
       }
+    }
+    notifyListeners();
+  }
+
+  @override
+  Future<void> deleteTransaction(FinanceTransaction transaction) async {
+    if (transaction.id == null) {
+      throw ArgumentError('O lançamento não possui identificador.');
+    }
+
+    final database = await _appDatabase.database;
+    final deletedRows = transaction.isFixed
+        ? await database.transaction((databaseTransaction) async {
+            final rows = await databaseTransaction.delete(
+              'fixed_transactions',
+              where: 'id = ? AND type = ?',
+              whereArgs: [transaction.id, transaction.type.databaseValue],
+            );
+            if (rows == 1) {
+              await databaseTransaction.delete(
+                'fixed_transaction_monthly_values',
+                where: 'fixed_transaction_id = ?',
+                whereArgs: [transaction.id],
+              );
+            }
+            return rows;
+          })
+        : await database.delete(
+            'transactions',
+            where: 'id = ? AND type = ?',
+            whereArgs: [transaction.id, transaction.type.databaseValue],
+          );
+    if (deletedRows != 1) {
+      throw StateError('O lançamento não foi encontrado.');
     }
     notifyListeners();
   }
