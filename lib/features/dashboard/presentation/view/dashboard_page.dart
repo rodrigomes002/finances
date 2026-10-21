@@ -111,90 +111,108 @@ class _DashboardPageState extends State<DashboardPage> {
                 ],
               ),
               const SizedBox(height: 28),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Gastos do mês',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                  ),
-                  Icon(
-                    Icons.receipt_long_outlined,
-                    size: 20,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
               if (_viewModel.errorMessage case final message?)
                 Center(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 24),
                     child: Text(message),
                   ),
-                )
-              else if (_viewModel.expensesForSelectedMonth.isEmpty)
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 28,
-                    ),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.savings_outlined,
-                          size: 32,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'Nenhum gasto encontrado neste mês.',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              else ...[
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          child: Row(
-                            children: [
-                              Text(
-                                'Total: ${_formatCurrency(_viewModel.selectedMonthExpenses)}',
-                                style: Theme.of(context).textTheme.titleMedium,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Divider(height: 1),
-                        ..._viewModel.expensesForSelectedMonth.indexed.map(
-                          (entry) => _TransactionTile(
-                            transaction: entry.$2,
-                            formattedAmount: _formatCurrency(entry.$2.amount),
-                            showDivider:
-                                entry.$1 <
-                                _viewModel.expensesForSelectedMonth.length - 1,
-                            onEdit: () => _editExpenseAmount(entry.$2),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
-              ],
+              _buildMonthlyTransactionsSection(
+                title: 'Gastos do mês',
+                emptyMessage: 'Nenhum gasto encontrado neste mês.',
+                transactions: _viewModel.expensesForSelectedMonth,
+              ),
+              const SizedBox(height: 24),
+              _buildMonthlyTransactionsSection(
+                title: 'Entradas do mês',
+                emptyMessage: 'Nenhuma entrada encontrada neste mês.',
+                transactions: _viewModel.incomesForSelectedMonth,
+              ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildMonthlyTransactionsSection({
+    required String title,
+    required String emptyMessage,
+    required List<FinanceTransaction> transactions,
+  }) {
+    final total = transactions.fold<double>(
+      0,
+      (sum, transaction) => sum + transaction.amount,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(title, style: Theme.of(context).textTheme.titleLarge),
+            ),
+            Icon(
+              Icons.receipt_long_outlined,
+              size: 20,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (transactions.isEmpty)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.savings_outlined,
+                    size: 32,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    emptyMessage,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: Row(
+                      children: [
+                        Text(
+                          'Total: ${_formatCurrency(total)}',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  ...transactions.indexed.map(
+                    (entry) => _TransactionTile(
+                      transaction: entry.$2,
+                      formattedAmount: _formatCurrency(entry.$2.amount),
+                      showDivider: entry.$1 < transactions.length - 1,
+                      onEdit: () => _editTransactionAmount(entry.$2),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -221,7 +239,7 @@ class _DashboardPageState extends State<DashboardPage> {
     return '${months[date.month - 1]} de ${date.year}';
   }
 
-  Future<void> _editExpenseAmount(FinanceTransaction transaction) async {
+  Future<void> _editTransactionAmount(FinanceTransaction transaction) async {
     final formKey = GlobalKey<FormState>();
     var amountInput = transaction.amount
         .toStringAsFixed(2)
@@ -271,18 +289,23 @@ class _DashboardPageState extends State<DashboardPage> {
     );
     if (amount == null || !mounted) return;
 
-    final saved = await _viewModel.updateExpenseAmount(transaction, amount);
+    final saved = await _viewModel.updateTransactionAmount(transaction, amount);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           saved
-              ? 'Valor do gasto atualizado.'
-              : 'Não foi possível atualizar o valor do gasto.',
+              ? 'Valor ${_transactionUpdatePhrase(transaction)} atualizado.'
+              : 'Não foi possível atualizar o valor ${_transactionUpdatePhrase(transaction)}.',
         ),
       ),
     );
   }
+
+  String _transactionUpdatePhrase(FinanceTransaction transaction) =>
+      transaction.type == FinanceTransactionType.income
+      ? 'da entrada'
+      : 'do gasto';
 
   double? _parseAmount(String value) {
     final normalized = value.trim().contains(',')
@@ -469,7 +492,8 @@ class _TransactionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const color = Color(0xFFD65A57);
+    final isIncome = transaction.type == FinanceTransactionType.income;
+    final color = isIncome ? const Color(0xFF16845F) : const Color(0xFFD65A57);
     final date =
         '${transaction.occurredAt.day.toString().padLeft(2, '0')}/'
         '${transaction.occurredAt.month.toString().padLeft(2, '0')}/'
@@ -488,8 +512,10 @@ class _TransactionTile extends StatelessWidget {
                   color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(13),
                 ),
-                child: const Icon(
-                  Icons.shopping_bag_outlined,
+                child: Icon(
+                  isIncome
+                      ? Icons.south_west_rounded
+                      : Icons.shopping_bag_outlined,
                   color: color,
                   size: 19,
                 ),
@@ -507,7 +533,11 @@ class _TransactionTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      transaction.isFixed ? 'Despesa fixa' : date,
+                      transaction.isFixed
+                          ? isIncome
+                                ? 'Entrada fixa'
+                                : 'Despesa fixa'
+                          : date,
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
@@ -515,11 +545,8 @@ class _TransactionTile extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                '-$formattedAmount',
-                style: const TextStyle(
-                  color: color,
-                  fontWeight: FontWeight.w700,
-                ),
+                '${isIncome ? '+' : '-'}$formattedAmount',
+                style: TextStyle(color: color, fontWeight: FontWeight.w700),
               ),
               IconButton(
                 tooltip: 'Editar valor de ${transaction.description}',

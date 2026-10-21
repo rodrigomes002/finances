@@ -63,7 +63,8 @@ void main() {
     expect(find.text('R\$ 250,00'), findsOneWidget);
     expect(find.text('R\$ 1000,00'), findsOneWidget);
     expect(find.text('R\$ 750,00'), findsOneWidget);
-    expect(find.text('Salário'), findsNothing);
+    expect(find.text('Salário'), findsOneWidget);
+    expect(find.text('+R\$ 1000,00'), findsOneWidget);
     expect(find.text('Mercado'), findsOneWidget);
     expect(find.text('-R\$ 750,00'), findsOneWidget);
   });
@@ -118,7 +119,7 @@ void main() {
     expect(find.text('R\$ 100,00'), findsWidgets);
     expect(find.text('Gasto do mês anterior'), findsWidgets);
     expect(find.text('Gasto do mês atual'), findsNothing);
-    expect(find.text('Entrada do mês anterior'), findsNothing);
+    expect(find.text('Entrada do mês anterior'), findsOneWidget);
     expect(find.text('Total: R\$ 100,00'), findsOneWidget);
   });
 
@@ -151,14 +152,60 @@ void main() {
     expect(repository.updatedMonth?.month, DateTime.now().month);
     expect(find.text('Valor do gasto atualizado.'), findsOneWidget);
   });
+
+  testWidgets('shows and edits a fixed income for the selected month', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final fixedIncome = FinanceTransaction(
+      description: 'Salário mensal',
+      amount: 3200,
+      type: FinanceTransactionType.income,
+      occurredAt: DateTime.now(),
+      importKey: '',
+      category: 'Salário',
+      isFixed: true,
+      id: 1,
+    );
+    final repository = _FakeFinanceRepository(incomes: [fixedIncome]);
+
+    await tester.pumpWidget(
+      MaterialApp(home: DashboardPage(repository: repository)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Entradas do mês'), findsAtLeastNWidgets(2));
+    expect(find.text('Entrada fixa'), findsOneWidget);
+    expect(find.text('+R\$ 3200,00'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Editar valor de Salário mensal'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField), '3500,00');
+    await tester.tap(find.text('Salvar'));
+    await tester.pumpAndSettle();
+
+    expect(repository.updatedTransaction, same(fixedIncome));
+    expect(repository.updatedAmount, 3500);
+    expect(find.text('Valor da entrada atualizado.'), findsOneWidget);
+  });
 }
 
 class _FakeFinanceRepository extends ChangeNotifier
     implements FinanceRepository {
-  _FakeFinanceRepository({this.overview, this.transactions = const []});
+  _FakeFinanceRepository({
+    this.overview,
+    this.transactions = const [],
+    this.incomes = const [],
+  });
 
   final FinanceOverview? overview;
   final List<FinanceTransaction> transactions;
+  final List<FinanceTransaction> incomes;
+  FinanceTransaction? updatedTransaction;
   double? updatedAmount;
   DateTime? updatedMonth;
 
@@ -170,11 +217,12 @@ class _FakeFinanceRepository extends ChangeNotifier
   Future<void> addTransaction(FinanceTransaction transaction) async {}
 
   @override
-  Future<void> updateExpenseAmount({
+  Future<void> updateTransactionAmount({
     required FinanceTransaction transaction,
     required double amount,
     required DateTime month,
   }) async {
+    updatedTransaction = transaction;
     updatedAmount = amount;
     updatedMonth = month;
   }
@@ -219,6 +267,23 @@ class _FakeFinanceRepository extends ChangeNotifier
               transaction.occurredAt.month == month.month,
         )
         .toList();
+  }
+
+  @override
+  Future<List<FinanceTransaction>> loadIncomesForMonth(DateTime month) async {
+    return [
+      ...transactions.where(
+        (transaction) =>
+            transaction.type == FinanceTransactionType.income &&
+            transaction.occurredAt.year == month.year &&
+            transaction.occurredAt.month == month.month,
+      ),
+      ...incomes.where(
+        (transaction) =>
+            transaction.occurredAt.year == month.year &&
+            transaction.occurredAt.month == month.month,
+      ),
+    ];
   }
 }
 

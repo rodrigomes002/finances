@@ -13,7 +13,7 @@ abstract interface class FinanceRepository implements Listenable {
 
   Future<int> importTransactions(List<FinanceTransaction> transactions);
   Future<void> addTransaction(FinanceTransaction transaction);
-  Future<void> updateExpenseAmount({
+  Future<void> updateTransactionAmount({
     required FinanceTransaction transaction,
     required double amount,
     required DateTime month,
@@ -21,6 +21,7 @@ abstract interface class FinanceRepository implements Listenable {
   Future<FinanceOverview> loadOverview({DateTime? now, DateTime? month});
   Future<List<FinanceTransaction>> loadRecentTransactions({int limit = 10});
   Future<List<FinanceTransaction>> loadExpensesForMonth(DateTime month);
+  Future<List<FinanceTransaction>> loadIncomesForMonth(DateTime month);
 }
 
 class SqliteFinanceRepository extends ChangeNotifier
@@ -78,18 +79,9 @@ class SqliteFinanceRepository extends ChangeNotifier
         'A categoria é obrigatória.',
       );
     }
-    if (transaction.isFixed &&
-        transaction.type != FinanceTransactionType.expense) {
-      throw ArgumentError.value(
-        transaction.type,
-        'type',
-        'Despesas fixas devem ser lançamentos de despesa.',
-      );
-    }
-
     final database = await _appDatabase.database;
     if (transaction.isFixed) {
-      await database.insert('fixed_expenses', {
+      await database.insert('fixed_transactions', {
         'description': transaction.description.trim(),
         'amount': transaction.amount,
         'category': transaction.category,
@@ -97,6 +89,7 @@ class SqliteFinanceRepository extends ChangeNotifier
           transaction.occurredAt.year,
           transaction.occurredAt.month,
         ).toIso8601String(),
+        'type': transaction.type.databaseValue,
       });
     } else {
       await database.insert('transactions', {
@@ -112,7 +105,7 @@ class SqliteFinanceRepository extends ChangeNotifier
   }
 
   @override
-  Future<void> updateExpenseAmount({
+  Future<void> updateTransactionAmount({
     required FinanceTransaction transaction,
     required double amount,
     required DateTime month,
@@ -132,8 +125,8 @@ class SqliteFinanceRepository extends ChangeNotifier
     if (transaction.isFixed) {
       final selectedMonth = DateTime(month.year, month.month);
       final batch = database.batch();
-      batch.insert('fixed_expense_monthly_values', {
-        'fixed_expense_id': transaction.id,
+      batch.insert('fixed_transaction_monthly_values', {
+        'fixed_transaction_id': transaction.id,
         'month': _monthKey(selectedMonth),
         'amount': amount,
       }, conflictAlgorithm: ConflictAlgorithm.replace);
@@ -143,13 +136,10 @@ class SqliteFinanceRepository extends ChangeNotifier
         'transactions',
         {'amount': amount},
         where: 'id = ? AND type = ?',
-        whereArgs: [
-          transaction.id,
-          FinanceTransactionType.expense.databaseValue,
-        ],
+        whereArgs: [transaction.id, transaction.type.databaseValue],
       );
       if (updatedRows != 1) {
-        throw StateError('O lançamento de despesa não foi encontrado.');
+        throw StateError('O lançamento não foi encontrado.');
       }
     }
     notifyListeners();
@@ -172,19 +162,28 @@ class SqliteFinanceRepository extends ChangeNotifier
       ''',
       [monthStart.toIso8601String(), nextMonth.toIso8601String()],
     );
-    final fixedExpenses = await database.rawQuery(
+    final fixedTransactions = await database.rawQuery(
       '''
-      SELECT COALESCE(SUM(COALESCE(monthly.amount, fixed.amount)), 0) AS expenses
-      FROM fixed_expenses AS fixed
-      LEFT JOIN fixed_expense_monthly_values AS monthly
-        ON monthly.fixed_expense_id = fixed.id AND monthly.month = ?
+      SELECT
+        COALESCE(SUM(CASE WHEN fixed.type = 'income'
+          THEN COALESCE(monthly.amount, fixed.amount) ELSE 0 END), 0)
+          AS income,
+        COALESCE(SUM(CASE WHEN fixed.type = 'expense'
+          THEN COALESCE(monthly.amount, fixed.amount) ELSE 0 END), 0)
+          AS expenses
+      FROM fixed_transactions AS fixed
+      LEFT JOIN fixed_transaction_monthly_values AS monthly
+        ON monthly.fixed_transaction_id = fixed.id AND monthly.month = ?
       WHERE fixed.started_at < ?
       ''',
       [_monthKey(monthStart), nextMonth.toIso8601String()],
     );
-    final fixedExpenseTotal = (fixedExpenses.first['expenses']! as num)
+    final fixedIncomeTotal = (fixedTransactions.first['income']! as num)
         .toDouble();
-    final monthlyIncome = (monthlyTotals.first['income']! as num).toDouble();
+    final fixedExpenseTotal = (fixedTransactions.first['expenses']! as num)
+        .toDouble();
+    final monthlyIncome =
+        (monthlyTotals.first['income']! as num).toDouble() + fixedIncomeTotal;
     final monthlyExpenseTotal =
         (monthlyTotals.first['expenses']! as num).toDouble() +
         fixedExpenseTotal;
@@ -211,15 +210,31 @@ class SqliteFinanceRepository extends ChangeNotifier
 
   @override
   Future<List<FinanceTransaction>> loadExpensesForMonth(DateTime month) async {
+    return _loadTransactionsForMonth(month, FinanceTransactionType.expense);
+  }
+
+  @override
+  Future<List<FinanceTransaction>> loadIncomesForMonth(DateTime month) async {
+    return _loadTransactionsForMonth(month, FinanceTransactionType.income);
+  }
+
+  Future<List<FinanceTransaction>> _loadTransactionsForMonth(
+    DateTime month,
+    FinanceTransactionType type,
+  ) async {
     final database = await _appDatabase.database;
     final monthStart = DateTime(month.year, month.month);
     final nextMonth = DateTime(month.year, month.month + 1);
     final rows = await database.query(
       'transactions',
       where:
-          "type = 'expense' AND occurred_at >= ? AND occurred_at < ? "
+          'type = ? AND occurred_at >= ? AND occurred_at < ? '
           'AND is_fixed = 0',
-      whereArgs: [monthStart.toIso8601String(), nextMonth.toIso8601String()],
+      whereArgs: [
+        type.databaseValue,
+        monthStart.toIso8601String(),
+        nextMonth.toIso8601String(),
+      ],
       orderBy: 'occurred_at DESC, id DESC',
     );
     final fixedRows = await database.rawQuery(
@@ -228,20 +243,21 @@ class SqliteFinanceRepository extends ChangeNotifier
         fixed.id AS id,
         fixed.description AS description,
         COALESCE(monthly.amount, fixed.amount) AS amount,
-        'expense' AS type,
+        fixed.type AS type,
         fixed.category AS category,
         ? AS occurred_at,
         NULL AS import_key,
         1 AS is_fixed
-      FROM fixed_expenses AS fixed
-      LEFT JOIN fixed_expense_monthly_values AS monthly
-        ON monthly.fixed_expense_id = fixed.id AND monthly.month = ?
-      WHERE fixed.started_at < ?
+      FROM fixed_transactions AS fixed
+      LEFT JOIN fixed_transaction_monthly_values AS monthly
+        ON monthly.fixed_transaction_id = fixed.id AND monthly.month = ?
+      WHERE fixed.type = ? AND fixed.started_at < ?
       ORDER BY fixed.description COLLATE NOCASE
       ''',
       [
         monthStart.toIso8601String(),
         _monthKey(monthStart),
+        type.databaseValue,
         nextMonth.toIso8601String(),
       ],
     );

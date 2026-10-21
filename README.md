@@ -37,7 +37,8 @@ recentes. Na aba **Upload**, selecione um extrato Itaú em PDF: o arquivo é lid
 localmente, e entradas e despesas são salvas no SQLite. Linhas “SALDO DO DIA”
 não são importadas; reimportações ignoram lançamentos já salvos.
 
-Em **Lançamento manual**, marque **Despesa fixa** para repetir a despesa nos
-meses seguintes, a partir do mês informado. No painel, navegue entre os meses
-para consultar os gastos e use o ícone de edição para ajustar o valor. Alterar
-uma despesa fixa afeta somente o mês selecionado.
+Em **Lançamento manual**, marque **Despesa fixa** ou **Entrada fixa** para
+repetir o lançamento nos meses seguintes, a partir do mês informado. No painel,
+navegue entre os meses para consultar gastos e entradas e use o ícone de edição
+para ajustar o valor. Alterar um lançamento fixo afeta somente o mês
+selecionado.

@@ -15,7 +15,7 @@ class AppDatabase {
 
     return openDatabase(
       join(databasesPath, 'finances.db'),
-      version: 3,
+      version: 4,
       onCreate: (database, version) async {
         await database.execute('''
           CREATE TABLE transactions (
@@ -29,7 +29,7 @@ class AppDatabase {
             is_fixed INTEGER NOT NULL DEFAULT 0
           )
         ''');
-        await _createFixedExpenseTables(database);
+        await _createFixedTransactionTables(database);
       },
       onUpgrade: (database, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -46,13 +46,57 @@ class AppDatabase {
             'ALTER TABLE transactions ADD COLUMN '
             'is_fixed INTEGER NOT NULL DEFAULT 0',
           );
-          await _createFixedExpenseTables(database);
+          await _createLegacyFixedExpenseTables(database);
+        }
+        if (oldVersion < 4) {
+          await _createFixedTransactionTables(database);
+          await database.execute('''
+            INSERT INTO fixed_transactions (
+              id, description, amount, category, started_at, type
+            )
+            SELECT id, description, amount, category, started_at, 'expense'
+            FROM fixed_expenses
+            ''');
+          await database.execute('''
+            INSERT INTO fixed_transaction_monthly_values (
+              fixed_transaction_id, month, amount
+            )
+            SELECT fixed_expense_id, month, amount
+            FROM fixed_expense_monthly_values
+            ''');
+          await database.execute('DROP TABLE fixed_expense_monthly_values');
+          await database.execute('DROP TABLE fixed_expenses');
         }
       },
     );
   }
 
-  Future<void> _createFixedExpenseTables(DatabaseExecutor database) async {
+  Future<void> _createFixedTransactionTables(DatabaseExecutor database) async {
+    await database.execute('''
+      CREATE TABLE fixed_transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        description TEXT NOT NULL,
+        amount REAL NOT NULL CHECK (amount > 0),
+        category TEXT NOT NULL,
+        started_at TEXT NOT NULL,
+        type TEXT NOT NULL CHECK (type IN ('income', 'expense'))
+      )
+    ''');
+    await database.execute('''
+      CREATE TABLE fixed_transaction_monthly_values (
+        fixed_transaction_id INTEGER NOT NULL,
+        month TEXT NOT NULL,
+        amount REAL NOT NULL CHECK (amount > 0),
+        PRIMARY KEY (fixed_transaction_id, month),
+        FOREIGN KEY (fixed_transaction_id) REFERENCES fixed_transactions (id)
+          ON DELETE CASCADE
+      )
+    ''');
+  }
+
+  Future<void> _createLegacyFixedExpenseTables(
+    DatabaseExecutor database,
+  ) async {
     await database.execute('''
       CREATE TABLE fixed_expenses (
         id INTEGER PRIMARY KEY AUTOINCREMENT,

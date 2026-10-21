@@ -57,6 +57,33 @@ void main() {
     expect(repository.addedTransaction!.description, 'Aluguel');
     expect(repository.addedTransaction!.isFixed, isTrue);
   });
+
+  testWidgets('saves a fixed income', (tester) async {
+    final repository = _FakeFinanceRepository();
+
+    await tester.pumpWidget(
+      MaterialApp(home: ManualEntryPage(repository: repository)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Renda'));
+    await tester.pumpAndSettle();
+    expect(find.text('Entrada fixa'), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField).at(0), 'Salário');
+    await tester.enterText(find.byType(TextFormField).at(1), '3000,00');
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Salário').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Entrada fixa'));
+    await tester.ensureVisible(find.text('Salvar lançamento'));
+    await tester.tap(find.text('Salvar lançamento'));
+    await tester.pumpAndSettle();
+
+    expect(repository.addedTransaction, isNotNull);
+    expect(repository.addedTransaction!.type, FinanceTransactionType.income);
+    expect(repository.addedTransaction!.isFixed, isTrue);
+  });
 }
 
 class _FakeFinanceRepository extends ChangeNotifier
@@ -69,7 +96,7 @@ class _FakeFinanceRepository extends ChangeNotifier
   }
 
   @override
-  Future<void> updateExpenseAmount({
+  Future<void> updateTransactionAmount({
     required FinanceTransaction transaction,
     required double amount,
     required DateTime month,
@@ -81,6 +108,10 @@ class _FakeFinanceRepository extends ChangeNotifier
 
   @override
   Future<List<FinanceTransaction>> loadExpensesForMonth(DateTime month) async =>
+      [];
+
+  @override
+  Future<List<FinanceTransaction>> loadIncomesForMonth(DateTime month) async =>
       [];
 
   @override

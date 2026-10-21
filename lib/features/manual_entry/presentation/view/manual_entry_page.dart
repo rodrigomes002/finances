@@ -25,7 +25,7 @@ class _ManualEntryPageState extends State<ManualEntryPage> {
   final _amountController = TextEditingController();
   late final ManualEntryViewModel _viewModel;
   FinanceTransactionType _type = FinanceTransactionType.expense;
-  bool _isFixedExpense = false;
+  bool _isFixedTransaction = false;
   String? _category;
   DateTime _occurredAt = DateTime.now();
 
@@ -88,7 +88,7 @@ class _ManualEntryPageState extends State<ManualEntryPage> {
       occurredAt: _occurredAt,
       importKey: '',
       category: _category!,
-      isFixed: _isFixedExpense,
+      isFixed: _isFixedTransaction,
     );
 
     final saved = await _viewModel.save(transaction);
@@ -100,7 +100,7 @@ class _ManualEntryPageState extends State<ManualEntryPage> {
       setState(() {
         _category = null;
         _type = FinanceTransactionType.expense;
-        _isFixedExpense = false;
+        _isFixedTransaction = false;
         _occurredAt = DateTime.now();
       });
       ScaffoldMessenger.of(context).showSnackBar(
@@ -167,10 +167,6 @@ class _ManualEntryPageState extends State<ManualEntryPage> {
                                 : (selection) => setState(() {
                                     _type = selection.first;
                                     _category = null;
-                                    if (_type ==
-                                        FinanceTransactionType.income) {
-                                      _isFixedExpense = false;
-                                    }
                                   }),
                           ),
                           const SizedBox(height: 18),
@@ -235,23 +231,27 @@ class _ManualEntryPageState extends State<ManualEntryPage> {
                                 ? 'Selecione uma categoria.'
                                 : null,
                           ),
-                          if (_type == FinanceTransactionType.expense) ...[
-                            const SizedBox(height: 8),
-                            CheckboxListTile(
-                              contentPadding: EdgeInsets.zero,
-                              value: _isFixedExpense,
-                              title: const Text('Despesa fixa'),
-                              subtitle: const Text(
-                                'Repetir este gasto nos próximos meses',
-                              ),
-                              controlAffinity: ListTileControlAffinity.leading,
-                              onChanged: _viewModel.isSaving
-                                  ? null
-                                  : (value) => setState(
-                                      () => _isFixedExpense = value ?? false,
-                                    ),
+                          const SizedBox(height: 8),
+                          CheckboxListTile(
+                            contentPadding: EdgeInsets.zero,
+                            value: _isFixedTransaction,
+                            title: Text(
+                              _type == FinanceTransactionType.income
+                                  ? 'Entrada fixa'
+                                  : 'Despesa fixa',
                             ),
-                          ],
+                            subtitle: Text(
+                              _type == FinanceTransactionType.income
+                                  ? 'Repetir esta entrada nos próximos meses'
+                                  : 'Repetir este gasto nos próximos meses',
+                            ),
+                            controlAffinity: ListTileControlAffinity.leading,
+                            onChanged: _viewModel.isSaving
+                                ? null
+                                : (value) => setState(
+                                    () => _isFixedTransaction = value ?? false,
+                                  ),
+                          ),
                           const SizedBox(height: 16),
                           OutlinedButton.icon(
                             onPressed: _viewModel.isSaving ? null : _selectDate,

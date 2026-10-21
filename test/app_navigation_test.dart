@@ -63,7 +63,7 @@ class _FakeFinanceRepository extends ChangeNotifier
   Future<void> addTransaction(FinanceTransaction transaction) async {}
 
   @override
-  Future<void> updateExpenseAmount({
+  Future<void> updateTransactionAmount({
     required FinanceTransaction transaction,
     required double amount,
     required DateTime month,
@@ -83,5 +83,9 @@ class _FakeFinanceRepository extends ChangeNotifier
 
   @override
   Future<List<FinanceTransaction>> loadExpensesForMonth(DateTime month) async =>
+      [];
+
+  @override
+  Future<List<FinanceTransaction>> loadIncomesForMonth(DateTime month) async =>
       [];
 }

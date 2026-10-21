@@ -17,6 +17,7 @@ class DashboardViewModel extends ChangeNotifier {
   double _monthlyExpenses = 0;
   List<FinanceTransaction> _recentTransactions = const [];
   List<FinanceTransaction> _expensesForSelectedMonth = const [];
+  List<FinanceTransaction> _incomesForSelectedMonth = const [];
   late DateTime _selectedExpenseMonth;
   int _monthRequestId = 0;
   String? _errorMessage;
@@ -28,6 +29,8 @@ class DashboardViewModel extends ChangeNotifier {
   DateTime get selectedExpenseMonth => _selectedExpenseMonth;
   List<FinanceTransaction> get expensesForSelectedMonth =>
       _expensesForSelectedMonth;
+  List<FinanceTransaction> get incomesForSelectedMonth =>
+      _incomesForSelectedMonth;
   double get selectedMonthExpenses => _expensesForSelectedMonth.fold(
     0,
     (total, transaction) => total + transaction.amount,
@@ -41,12 +44,14 @@ class DashboardViewModel extends ChangeNotifier {
       final overview = await _repository.loadOverview(month: selectedMonth);
       final transactions = await _repository.loadRecentTransactions();
       final expenses = await _repository.loadExpensesForMonth(selectedMonth);
+      final incomes = await _repository.loadIncomesForMonth(selectedMonth);
       _recentTransactions = transactions;
       if (monthRequestId == _monthRequestId) {
         _balance = overview.balance;
         _monthlyIncome = overview.monthlyIncome;
         _monthlyExpenses = overview.monthlyExpenses;
         _expensesForSelectedMonth = expenses;
+        _incomesForSelectedMonth = incomes;
         _errorMessage = null;
       }
     } on Exception {
@@ -67,11 +72,13 @@ class DashboardViewModel extends ChangeNotifier {
     try {
       final overview = await _repository.loadOverview(month: selectedMonth);
       final expenses = await _repository.loadExpensesForMonth(selectedMonth);
+      final incomes = await _repository.loadIncomesForMonth(selectedMonth);
       if (monthRequestId == _monthRequestId) {
         _balance = overview.balance;
         _monthlyIncome = overview.monthlyIncome;
         _monthlyExpenses = overview.monthlyExpenses;
         _expensesForSelectedMonth = expenses;
+        _incomesForSelectedMonth = incomes;
         _errorMessage = null;
       }
     } on Exception {
@@ -85,12 +92,12 @@ class DashboardViewModel extends ChangeNotifier {
     }
   }
 
-  Future<bool> updateExpenseAmount(
+  Future<bool> updateTransactionAmount(
     FinanceTransaction transaction,
     double amount,
   ) async {
     try {
-      await _repository.updateExpenseAmount(
+      await _repository.updateTransactionAmount(
         transaction: transaction,
         amount: amount,
         month: _selectedExpenseMonth,
@@ -107,7 +114,7 @@ class DashboardViewModel extends ChangeNotifier {
   }
 
   bool _reportExpenseUpdateFailure() {
-    _errorMessage = 'Não foi possível atualizar o valor do gasto.';
+    _errorMessage = 'Não foi possível atualizar o valor do lançamento.';
     notifyListeners();
     return false;
   }
