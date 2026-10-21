@@ -18,6 +18,7 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   late final DashboardViewModel _viewModel;
+  bool _isExpenseChartVisible = true;
 
   @override
   void initState() {
@@ -115,6 +116,12 @@ class _DashboardPageState extends State<DashboardPage> {
                 totals: _viewModel.expenseTotalsByCategory,
                 total: _viewModel.selectedMonthExpenses,
                 formatCurrency: _formatCurrency,
+                isVisible: _isExpenseChartVisible,
+                onVisibilityChanged: () {
+                  setState(() {
+                    _isExpenseChartVisible = !_isExpenseChartVisible;
+                  });
+                },
               ),
               const SizedBox(height: 28),
               if (_viewModel.errorMessage case final message?)
@@ -425,11 +432,15 @@ class _ExpenseCategoryChart extends StatelessWidget {
     required this.totals,
     required this.total,
     required this.formatCurrency,
+    required this.isVisible,
+    required this.onVisibilityChanged,
   });
 
   final Map<String, double> totals;
   final double total;
   final String Function(double) formatCurrency;
+  final bool isVisible;
+  final VoidCallback onVisibilityChanged;
 
   static const _categoryColors = [
     Color(0xFF147D6F),
@@ -449,112 +460,134 @@ class _ExpenseCategoryChart extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          'Gastos por categoria',
-          style: Theme.of(context).textTheme.titleLarge,
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Gastos por categoria',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ),
+            IconButton(
+              tooltip: isVisible ? 'Ocultar gráfico' : 'Exibir gráfico',
+              onPressed: onVisibilityChanged,
+              icon: Icon(
+                isVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 12),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: entries.isEmpty
-                ? Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    child: Text(
-                      'Adicione gastos para visualizar as categorias.',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  )
-                : Column(
-                    children: [
-                      SizedBox(
-                        width: 184,
-                        height: 184,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            CustomPaint(
-                              size: const Size.square(184),
-                              painter: _PieChartPainter(
-                                values: entries
-                                    .map((entry) => entry.value)
-                                    .toList(),
-                                colors: List.generate(
-                                  entries.length,
-                                  (index) => _categoryColors[
-                                      index % _categoryColors.length],
+        if (isVisible) ...[
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: entries.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      child: Text(
+                        'Adicione gastos para visualizar as categorias.',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    )
+                  : Column(
+                      children: [
+                        SizedBox(
+                          width: 184,
+                          height: 184,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              CustomPaint(
+                                size: const Size.square(184),
+                                painter: _PieChartPainter(
+                                  values: entries
+                                      .map((entry) => entry.value)
+                                      .toList(),
+                                  colors: List.generate(
+                                    entries.length,
+                                    (index) => _categoryColors[
+                                        index % _categoryColors.length],
+                                  ),
                                 ),
                               ),
-                            ),
-                            Semantics(
-                              label: 'Total de gastos: ${formatCurrency(total)}',
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    'Total',
+                              Semantics(
+                                label:
+                                    'Total de gastos: ${formatCurrency(total)}',
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'Total',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyMedium,
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      formatCurrency(total),
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleMedium,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ...entries.indexed.map((entry) {
+                          final index = entry.$1;
+                          final category = entry.$2;
+                          final percentage = total == 0
+                              ? 0.0
+                              : category.value / total * 100;
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 12,
+                                  height: 12,
+                                  decoration: BoxDecoration(
+                                    color: _categoryColors[
+                                        index % _categoryColors.length],
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    category.key,
                                     style: Theme.of(
                                       context,
                                     ).textTheme.bodyMedium,
                                   ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    formatCurrency(total),
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.titleMedium,
-                                  ),
-                                ],
-                              ),
+                                ),
+                                Text(
+                                  '${percentage.toStringAsFixed(1).replaceAll('.', ',')}%',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  formatCurrency(category.value),
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium,
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      ...entries.indexed.map((entry) {
-                        final index = entry.$1;
-                        final category = entry.$2;
-                        final percentage = total == 0
-                            ? 0.0
-                            : category.value / total * 100;
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 12,
-                                height: 12,
-                                decoration: BoxDecoration(
-                                  color: _categoryColors[
-                                      index % _categoryColors.length],
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  category.key,
-                                  style: Theme.of(context).textTheme.bodyMedium,
-                                ),
-                              ),
-                              Text(
-                                '${percentage.toStringAsFixed(1).replaceAll('.', ',')}%',
-                                style: Theme.of(context).textTheme.bodyMedium,
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                formatCurrency(category.value),
-                                style: Theme.of(context).textTheme.titleMedium,
-                              ),
-                            ],
-                          ),
-                        );
-                      }),
-                    ],
-                  ),
+                          );
+                        }),
+                      ],
+                    ),
+            ),
           ),
-        ),
+        ],
       ],
     );
   }

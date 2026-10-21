@@ -132,6 +132,44 @@ void main() {
     expect(find.text('25,0%'), findsOneWidget);
   });
 
+  testWidgets('hides and shows the expense category chart on demand', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repository = _FakeFinanceRepository(
+      transactions: [
+        FinanceTransaction(
+          description: 'Almoço',
+          amount: 100,
+          type: FinanceTransactionType.expense,
+          occurredAt: DateTime.now(),
+          importKey: 'lunch',
+          category: 'Alimentação',
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: DashboardPage(repository: repository)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Alimentação'), findsOneWidget);
+    await tester.tap(find.byTooltip('Ocultar gráfico'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Alimentação'), findsNothing);
+    expect(find.text('Gastos por categoria'), findsOneWidget);
+    await tester.tap(find.byTooltip('Exibir gráfico'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Alimentação'), findsOneWidget);
+  });
+
   testWidgets('filters expenses by selected month', (tester) async {
     tester.view.physicalSize = const Size(800, 1400);
     tester.view.devicePixelRatio = 1;
