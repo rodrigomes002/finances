@@ -111,6 +111,12 @@ class _DashboardPageState extends State<DashboardPage> {
                 ],
               ),
               const SizedBox(height: 28),
+              _ExpenseCategoryChart(
+                totals: _viewModel.expenseTotalsByCategory,
+                total: _viewModel.selectedMonthExpenses,
+                formatCurrency: _formatCurrency,
+              ),
+              const SizedBox(height: 28),
               if (_viewModel.errorMessage case final message?)
                 Center(
                   child: Padding(
@@ -413,6 +419,179 @@ class _MonthSelector extends StatelessWidget {
 }
 
 enum _SummaryVariant { balance, income, expense }
+
+class _ExpenseCategoryChart extends StatelessWidget {
+  const _ExpenseCategoryChart({
+    required this.totals,
+    required this.total,
+    required this.formatCurrency,
+  });
+
+  final Map<String, double> totals;
+  final double total;
+  final String Function(double) formatCurrency;
+
+  static const _categoryColors = [
+    Color(0xFF147D6F),
+    Color(0xFF5B8DEF),
+    Color(0xFFFFA24C),
+    Color(0xFF9B6DD7),
+    Color(0xFFE56B76),
+    Color(0xFF45A6A0),
+    Color(0xFFD2A62E),
+    Color(0xFF73808C),
+    Color(0xFFCB7A4B),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final entries = totals.entries.toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Gastos por categoria',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: entries.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    child: Text(
+                      'Adicione gastos para visualizar as categorias.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  )
+                : Column(
+                    children: [
+                      SizedBox(
+                        width: 184,
+                        height: 184,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            CustomPaint(
+                              size: const Size.square(184),
+                              painter: _PieChartPainter(
+                                values: entries
+                                    .map((entry) => entry.value)
+                                    .toList(),
+                                colors: List.generate(
+                                  entries.length,
+                                  (index) => _categoryColors[
+                                      index % _categoryColors.length],
+                                ),
+                              ),
+                            ),
+                            Semantics(
+                              label: 'Total de gastos: ${formatCurrency(total)}',
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Total',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    formatCurrency(total),
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ...entries.indexed.map((entry) {
+                        final index = entry.$1;
+                        final category = entry.$2;
+                        final percentage = total == 0
+                            ? 0.0
+                            : category.value / total * 100;
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: _categoryColors[
+                                      index % _categoryColors.length],
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  category.key,
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              ),
+                              Text(
+                                '${percentage.toStringAsFixed(1).replaceAll('.', ',')}%',
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                formatCurrency(category.value),
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PieChartPainter extends CustomPainter {
+  const _PieChartPainter({required this.values, required this.colors});
+
+  final List<double> values;
+  final List<Color> colors;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final total = values.fold<double>(0, (sum, value) => sum + value);
+    if (total <= 0) return;
+
+    final bounds = Offset.zero & size;
+    var startAngle = -1.5707963267948966;
+    for (var index = 0; index < values.length; index++) {
+      final sweepAngle = values[index] / total * 6.283185307179586;
+      canvas.drawArc(
+        bounds,
+        startAngle,
+        sweepAngle,
+        true,
+        Paint()
+          ..color = colors[index]
+          ..style = PaintingStyle.fill,
+      );
+      startAngle += sweepAngle;
+    }
+  }
+
+  @override
+  bool shouldRepaint(_PieChartPainter oldDelegate) =>
+      oldDelegate.values != values || oldDelegate.colors != colors;
+}
 
 class _SummaryCard extends StatelessWidget {
   const _SummaryCard({
